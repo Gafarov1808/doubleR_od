@@ -14,13 +14,13 @@ class DoubleRIteration{
 
         std::array<double, 3> L1, L2, L3;
         std::array<double, 3> r_site1, r_site2, r_site3;
-        double JD1, JD2, JD3;
+        double tau1, tau3;
 
         const double eps_dr = 1e-8;
         double p, a, e;
         double cos_dE32, dE32, sin_dE32;
 
-        double tau1, tau3, c1, c2;
+        double c1, c2;
         double rst1_abs, rst2_abs;
         double F1, F2;
         double dF1_dr1, dF2_dr1, dF1_dr2, dF2_dr2;
@@ -52,14 +52,17 @@ class DoubleRIteration{
             return cross;
         }
 
+        void print_vec(const std::array<double, 3>& x)const{
+            std::cout << "[" << x[0] << ", " << x[1] << ", " << x[2] << "]" << std::endl;
+        }
+
     public:
 
         DoubleRIteration(std::array<double, 3> L1, 
                          std::array<double, 3> L2, 
                          std::array<double, 3> L3, 
-                         double JD1, 
-                         double JD2, 
-                         double JD3, 
+                         double tau1, 
+                         double tau3, 
                          std::array<double, 3> r_site1, 
                          std::array<double, 3> r_site2, 
                          std::array<double, 3> r_site3
@@ -74,16 +77,12 @@ class DoubleRIteration{
                     this->r_site3[i] = r_site3[i];
                 }
 
-                this->JD1 = JD1;
-                this->JD2 = JD2;
-                this->JD3 = JD3;
-
-                this->tau1 = JD1 - JD2;
-                this->tau3 = JD3 - JD2;
+                this->tau1 = tau1;
+                this->tau3 = tau3;
                 this->rst1_abs = sqrt(dot_prod(r_site1, r_site1));
                 this->rst2_abs = sqrt(dot_prod(r_site2, r_site2));
-                this->c1 = 2 * dot_prod(L1, r_site1);
-                this->c2 = 2 * dot_prod(L2, r_site2);
+                this->c1 = -2 * dot_prod(L1, r_site1);
+                this->c2 = -2 * dot_prod(L2, r_site2);
                 this->p = 0.0;
                 this->a = 0.0;
                 this->e = 0.0;
@@ -122,53 +121,47 @@ class DoubleRIteration{
             std::array<double, 3> r1_vec;
             std::array<double, 3> n;
 
-            try{
-                double un_sq1 = c1 * c1 - 4 * (rst1_abs * rst1_abs - r1 * r1),
-                un_sq2 = c2 * c2 - 4 * (rst2_abs * rst2_abs - r2 * r2);
-                rho1 = (-c1 + sqrt(un_sq1)) / 2;
-                rho2 = (-c2 + sqrt(un_sq2)) / 2;
-                if (un_sq1 < 0 || un_sq2 < 0){
-                    throw std::domain_error("Отрицательное значение под корнем для расстояния");
-                    }
-            }
-            catch (const std::domain_error& error){
-                std::cout << "c1 = " << c1 << ", "
-                          << "rst1_abs = " << rst1_abs << ", "
-                          << "r1 = " << r1 << std::endl;
-                throw;
-            }
+            double un_sq1 = c1 * c1 - 4 * (rst1_abs * rst1_abs - r1 * r1),
+            un_sq2 = c2 * c2 - 4 * (rst2_abs * rst2_abs - r2 * r2);
+            std::cout << "un_sq1 = " << un_sq1 << ", " << rst1_abs * rst1_abs - r1 * r1 << std::endl;
+            rho1 = (-c1 + sqrt(un_sq1)) / 2;
+            rho2 = (-c2 + sqrt(un_sq2)) / 2;
 
-            r1_vec[0] = rho1 * L1[0] + r_site1[0]; 
-            r1_vec[1] = rho1 * L1[1] + r_site1[1];
-            r1_vec[2] = rho1 * L1[2] + r_site1[2]; 
+            for(size_t i = 0; i < 3; ++i) r1_vec[i] = rho1 * L1[i] + r_site1[i]; 
+            for(size_t i = 0; i < 3; ++i) r2_vec[i] = rho2 * L2[i] + r_site2[i];
             r1_abs = sqrt(dot_prod(r1_vec, r1_vec));
-
-            if (std::isnan(r1_abs)){std::exit(1);}
-
-            r2_vec[0] = rho2 * L2[0] + r_site2[0]; 
-            r2_vec[1] = rho2 * L2[1] + r_site2[1];
-            r2_vec[2] = rho2 * L2[2] + r_site2[2];
             r2_abs = sqrt(dot_prod(r2_vec, r2_vec));
-
+            std::cout << "r2_abs = " << r2_abs << std::endl;
             W = cross_prod(r1_vec, r2_vec);
             for(size_t i = 0; i < W.size(); ++i) W[i] /= (r1_abs * r2_abs);
-             
-            rho3 = -dot_prod(r_site3, W) / dot_prod(L3, W);
+            print_vec(W);
+            print_vec(r1_vec);
+            print_vec(r2_vec);
+            print_vec(r_site3);
+            print_vec(L3);
+            rho3 = dot_prod(r_site3, W) / dot_prod(L3, W);
+            if (rho1 < 0 || rho2 < 0 || rho3 < 0){ 
+                std::cout << "rho1 = " << rho1 << ", " 
+                          << "rho2 = " << rho2 << ", " 
+                          << "rho3 = " << rho3 << std::endl;
+                std::exit(1);}
+            std::cout << "rho3 = " << rho3 << std::endl;
 
-            this->r3_vec[0] = rho3 * L3[0] + r_site3[0];
-            this->r3_vec[1] = rho3 * L3[1] + r_site3[1];
-            this->r3_vec[2] = rho3 * L3[2] + r_site3[2];
+            for(size_t i = 0; i < 3; ++i) this->r3_vec[i] = rho3 * L3[i] + r_site3[i];
             r3_abs = sqrt(dot_prod(this->r3_vec, this->r3_vec));
 
             cos_dnu21 = dot_prod(r2_vec, r1_vec) / r2_abs / r1_abs;
-            cos_dnu32 = dot_prod(this->r3_vec, this->r2_vec) / r3_abs / r2_abs;
+            std::cout << "cos_dnu21 = " << cos_dnu21 << std::endl;
+            cos_dnu32 = dot_prod(this->r3_vec, r2_vec) / r3_abs / r2_abs;
 
             n = norm(r1_vec, r2_vec);
 
             sin_dnu21 = dot_prod(cross_prod(r1_vec, r2_vec), n) / r1_abs / r2_abs;
             sin_dnu31 = dot_prod(cross_prod(r1_vec, r3_vec), n) / r1_abs / r3_abs;
             sin_dnu32 = dot_prod(cross_prod(r2_vec, r3_vec), n) / r2_abs / r3_abs;
-
+            std::cout << "sin_dnu21 = " << sin_dnu21 << " ,"
+                      << "sin_dnu31 = " << sin_dnu31 << " ,"
+                      << "sin_dnu32 = " << sin_dnu32 << std::endl;
             if (sin_dnu31 < 0){
                 c1 = r2_abs * sin_dnu32 / r1_abs / sin_dnu31;
                 c3 = r2_abs * sin_dnu21 / r3_abs / sin_dnu31;
@@ -178,6 +171,7 @@ class DoubleRIteration{
                 c1 = r1_abs * sin_dnu31 / r2_abs / sin_dnu32;
                 c3 = r1_abs * sin_dnu21 / r3_abs / sin_dnu32;
                 p = (c3 * r3_abs - c1 * r2_abs + r1_abs) / (-c1 + c3 + 1);
+                std::cout << "p = " << p << std::endl;
             }
 
             double e_cos_nu1 = p / r1_abs - 1;
@@ -190,6 +184,7 @@ class DoubleRIteration{
                 e_sin_nu2 = (-cos_dnu21 * e_cos_nu2 + e_cos_nu1) / sin_dnu21;
 
             e = sqrt(e_cos_nu2 * e_cos_nu2 + e_sin_nu2 * e_sin_nu2);
+            std::cout << "ecosnu2 = " << e_cos_nu2 << "esinnu2 = " << e_sin_nu2 << std::endl;
             a = p / (1 - e * e);
             double mean_anomaly = sqrt(mu / a / a / a);
             double S = r2_abs * sqrt(1 - e * e) * e_sin_nu2 / p;
@@ -208,6 +203,7 @@ class DoubleRIteration{
 
             this->F1 = this->tau1 - dM12 / mean_anomaly;
             this->F2 = this->tau3 - dM32 / mean_anomaly;
+            std::cout << "=====================================================" << std::endl;
         }
 
         void calc_der(double r1, double r2){
@@ -216,19 +212,19 @@ class DoubleRIteration{
 
             calc_func(r1 + eps * r1, r2);
             double F1r1_r = this->F1, F2r1_r = this->F2;
-
+            std::cout << "F1r1_r = " << F1r1_r << std::endl;
             this->c1 = c1_cur;
             calc_func(r1 - eps * r1, r2);
             double F1r1_l = this->F1, F2r1_l = this->F2;
-
+            std::cout << "F1r1_l = " << F1r1_l << std::endl;
             this->c1 = c1_cur;
             calc_func(r1, r2 + eps * r2);
             double F1r2_r = this->F1, F2r2_r = this->F2;
-
+            std::cout << "F1r2_r = " << F1r2_r << std::endl;
             this->c1 = c1_cur;
             calc_func(r1, r2 - eps * r2);
             double F1r2_l = this->F1, F2r2_l = this->F2;
-
+            std::cout << "F1r2_l = " << F1r2_l << std::endl;
             this->dF1_dr1 = (F1r1_r - F1r1_l) / 2 / eps / r1;
             this->dF2_dr1 = (F2r1_r - F2r1_l) / 2 / eps / r1;
             this->dF1_dr2 = (F1r2_r - F1r2_l) / 2 / eps / r2;
@@ -255,23 +251,23 @@ class DoubleRIteration{
 
                 dr1 = -d1 / D;
                 dr2 = -d2 / D;
-                if (fabs(dr1) > 0.05 * r1) dr1 = 0.1 * r1 * (dr1 > 0 ? 1 : -1);
-                if (fabs(dr2) > 0.05 * r2) dr2 = 0.1 * r2 * (dr2 > 0 ? 1 : -1);
+                std::cout << "d1 = " << d1 << ", " << "D = " << D << std::endl;
+                if (fabs(dr1) > 0.05 * r1) dr1 = 0.01 * r1 * (dr1 > 0 ? 1 : -1);
+                if (fabs(dr2) > 0.05 * r2) dr2 = 0.01 * r2 * (dr2 > 0 ? 1 : -1);
                 r1 += dr1;
                 r2 += dr2;
-                std::cout << r2 << std::endl;
+                std::cout << "dr1 = " << dr1 << ", " << "dr2 = " << dr2 << std::endl;
+                std::cout << "r1 = " << r1 << ", " << "r2 = " << r2 << std::endl;
                 this->c1 = c1_cur;
             }
             calc_func(r1, r2);
 
             f = 1 - a * (1 - cos_dE32) / r2;
             g = tau3 - sqrt(a * a * a / mu) * (dE32 - sin_dE32); 
+            std::cout << "a = " << a << std::endl;
+            for(size_t i=0; i < 3; ++i) v2[i] = (r3_vec[i] - f * r2_vec[i]) / g / 1e3; 
 
-            v2[0] = (r3_vec[0] - f * r2_vec[0]) / g; 
-            v2[1] = (r3_vec[1] - f * r2_vec[1]) / g; 
-            v2[2] = (r3_vec[2] - f * r2_vec[2]) / g; 
-
-            for(int i = 0; i < 3; i++){
+            for(size_t i = 0; i < 3; i++){
                 (*state_v)[i] = r2_vec[i];
                 (*state_v)[i+3] = v2[i];
             }
@@ -280,6 +276,7 @@ class DoubleRIteration{
         std::array<double, 6> get_state(){return *state_v;}
 
         std::array<double, 6> get_elements(){
+
             std::array <double, 3> r, v;
             std::copy((*state_v).begin(), (*state_v).begin() + 3, r.begin());
             std::copy((*state_v).begin()+3, (*state_v).end(), v.begin());
@@ -288,6 +285,7 @@ class DoubleRIteration{
             double ksi = dot_prod(v,v) / 2 - mu / r_abs;
 
             const std::array<double, 3> k = {0, 0, 1};
+
             std::array<double, 6> elements; //[a,e,i,omega,OMEGA,M]
             std::array<double, 3> h = cross_prod(r, v), n = cross_prod(k, h);
             std::array<double, 3> e_vec;
@@ -297,7 +295,7 @@ class DoubleRIteration{
             e_vec[0] = ((dot_prod(v,v) - mu / r_abs) * r[0] - dot_prod(r, v) * v[0]) / mu;
             e_vec[1] = ((dot_prod(v,v) - mu / r_abs) * r[1] - dot_prod(r, v) * v[1]) / mu;
             e_vec[2] = ((dot_prod(v,v) - mu / r_abs) * r[2] - dot_prod(r, v) * v[2]) / mu;
-
+            print_vec(e_vec);
             double e_abs = sqrt(dot_prod(e_vec, e_vec));
             elements[0] = -mu / 2 / ksi;
             elements[1] = e_abs;

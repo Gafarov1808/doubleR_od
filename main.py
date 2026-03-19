@@ -6,8 +6,7 @@ from kiamdb.meas import TrackletMeta, Tracklet, Station, SessionMeas
 import pyorbs
 import doubleR_module
 
-r1, r2 = 39, 42
-
+r1, r2 = 35, 45
 
 def get_data():
     
@@ -16,15 +15,15 @@ def get_data():
     de_list = []
     rotation_mats = []
     r_xyz = []
-
+    n = 4
     sq1 = select(TrackletMeta.unit_id, TrackletMeta.ip_id).where(
                     TrackletMeta.t_start > datetime(2026, 3, 1), 
                     TrackletMeta.t_end < datetime(2026, 3, 12)).order_by(
-                    desc(TrackletMeta.t_end - TrackletMeta.t_start)).limit(1)
+                    desc(TrackletMeta.t_end - TrackletMeta.t_start)).limit(n)
     
     with SessionMeas() as session:
-        res = session.execute(sq1).all() 
-    unit_id, ip_id = res[0].unit_id, res[0].ip_id
+        res1 = session.execute(sq1).all() 
+    unit_id, ip_id = res1[n-1].unit_id, res1[n-1].ip_id
 
     sq2 = select(Tracklet.time, Tracklet.ra_rad, Tracklet.de_rad).where(Tracklet.unit_id == unit_id)
 
@@ -46,23 +45,9 @@ def get_data():
         rotation_mats.append(pyorbs.auxilary.eme2itrf(t))
 
     for rot_mat in rotation_mats:
-        #print(rot_mat.T @ wgs* 1e-6)
         r_xyz.append(rot_mat.T @ wgs * 1e-6)
 
     return t_list[0], ra_list[0], de_list[0], r_xyz 
-
-def get_JD(t1, t2, t3):
-    date_t1 = float(t1.strftime('%Y%m%d'))
-    time_t1 = float(t1.strftime('%H%M%S.%f'))
-    JD1, _ = pyorbs.bal.datetime_jdt(date_t1, time_t1)
-    date_t2 = float(t2.strftime('%Y%m%d'))
-    time_t2 = float(t2.strftime('%H%M%S.%f'))
-    JD2, _ = pyorbs.bal.datetime_jdt(date_t2, time_t2)
-    date_t3 = float(t3.strftime('%Y%m%d'))
-    time_t3 = float(t3.strftime('%H%M%S.%f'))
-    JD3, _ = pyorbs.bal.datetime_jdt(date_t3, time_t3)
-
-    return JD1, JD2, JD3
 
 def get_L_mat(ra, dec):
     L = []
@@ -76,8 +61,6 @@ def main():
     times, ra, dec, xyz = get_data()
 
     t1, t2, t3 = times[0], times[len(times)//2], times[-1]
-    JD1, JD2, JD3 = get_JD(t1, t2, t3)
-
     ra1, ra2, ra3 = ra[0], ra[len(times)//2], ra[-1]
     dec1, dec2, dec3 = dec[0], dec[len(times)//2], dec[-1]
     L1 = get_L_mat(ra1, dec1)
@@ -85,11 +68,15 @@ def main():
     L3 = get_L_mat(ra3, dec3)
 
     r_st1, r_st2, r_st3 = xyz[0], xyz[len(times)//2], xyz[-1]
+    tau1 = (t1-t2).total_seconds()
+    tau3 = (t3-t2).total_seconds()
 
-    determ = doubleR_module.DoubleRIteration(L1, L2, L3, JD1, JD2, JD3, r_st1, r_st2, r_st3)
+    determ = doubleR_module.DoubleRIteration(L1, L2, L3, tau1, tau3, r_st1, r_st2, r_st3)
     determ.solver(r1, r2)
     state_v = determ.get_state()
-    print(state_v)
+    elements = determ.get_elements()
+    print(f'state = {state_v}')
+    print(f'elements = {elements}')
 
 if __name__ == "__main__":
     main()

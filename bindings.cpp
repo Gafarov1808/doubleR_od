@@ -15,7 +15,6 @@ PYBIND11_MODULE(doubleR_module, m){
         std::array<double, 3>,
         double,
         double,
-        double,
         std::array<double, 3>,
         std::array<double, 3>,
         std::array<double, 3>
