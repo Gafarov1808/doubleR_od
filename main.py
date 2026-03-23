@@ -6,7 +6,7 @@ from kiamdb.meas import TrackletMeta, Tracklet, Station, SessionMeas
 import pyorbs
 import doubleR_module
 
-r1, r2 = 35, 45.800
+r1, r2 = 25, 50
 
 def get_data():
     
@@ -56,7 +56,7 @@ def get_L_mat(ra, dec):
 def main():
 
     times, ra, dec, xyz = get_data()
-    second_pos = len(times)//2 + 60
+    second_pos = len(times) // 2
 
     t1, t2, t3 = times[0], times[second_pos], times[-1]
     ra1, ra2, ra3 = ra[0], ra[second_pos], ra[-1]

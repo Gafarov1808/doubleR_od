@@ -1,4 +1,6 @@
 #pragma once
+
+
 #include <iostream>
 #include <cmath>
 #include <cstdlib>
@@ -16,7 +18,7 @@ class DoubleRIteration{
         std::array<double, 3> r_st1, r_st2, r_st3;
         double tau1, tau3;
 
-        const double eps_dr = 1e-8;
+        const double eps_dr = 1e-6;
         double p, a, e;
         double cos_dE32, dE32, sin_dE32;
 
@@ -123,7 +125,7 @@ class DoubleRIteration{
             std::array<double, 3> r1_vec;
             std::array<double, 3> n;
 
-            double un_sq1 = c1 * c1 - 4 * (rst1_abs * rst1_abs - r1 * r1);
+            double un_sq1 = this->c1 * this->c1 - 4 * (rst1_abs * rst1_abs - r1 * r1);
             double un_sq2 = c2 * c2 - 4 * (rst2_abs * rst2_abs - r2 * r2);
             rho1 = (-c1 + sqrt(un_sq1)) / 2;
             rho2 = (-c2 + sqrt(un_sq2)) / 2;
@@ -158,12 +160,12 @@ class DoubleRIteration{
             sin_dnu32 = dot_prod(cross_prod(r2_vec, r3_vec), n) / r2_abs / r3_abs;
 
             if (sin_dnu31 < 0){
-                c1 = r2_abs * sin_dnu32 / r1_abs / sin_dnu31;
+                this->c1 = r2_abs * sin_dnu32 / r1_abs / sin_dnu31;
                 c3 = r2_abs * sin_dnu21 / r3_abs / sin_dnu31;
                 p = (c1 * r1_abs + c3 * r3_abs - r2_abs) / (c1 + c3 - 1);
             }
             else {
-                c1 = r1_abs * sin_dnu31 / r2_abs / sin_dnu32;
+                this->c1 = r1_abs * sin_dnu31 / r2_abs / sin_dnu32;
                 c3 = r1_abs * sin_dnu21 / r3_abs / sin_dnu32;
                 p = (c3 * r3_abs - c1 * r2_abs + r1_abs) / (-c1 + c3 + 1);
                 std::cout << "p = " << p << std::endl;
@@ -181,7 +183,7 @@ class DoubleRIteration{
 
             e = sqrt(e_cos_nu2 * e_cos_nu2 + e_sin_nu2 * e_sin_nu2);
             a = p / (1 - e * e);
-            if (e - 1 > 1e-3){
+            if (e - 1 > 1e-5){
                 mean_motion = sqrt(- mu / a / a / a);
                 S = r2_abs * sqrt(e * e - 1) * e_sin_nu2 / p;
                 C = r2_abs * (e * e + e_cos_nu2) / p;
@@ -192,7 +194,10 @@ class DoubleRIteration{
 
                 double dF32 = log(sh_dF32 + sqrt(sh_dF32 * sh_dF32 + 1));
                 double dF21 = log(sh_dF21 + sqrt(sh_dF21 * sh_dF21 + 1));
-                std::cout << "sh_dF21 = " << sh_dF21 << " ch_dF21 = " << ch_dF21 << " dF21 = " << dF21 << std::endl;
+                std::cout << "sh_dF21 = " << sh_dF21 << " ch_dF21 = " << ch_dF21 
+                            << " dF21 = " << dF21 << std::endl;
+                std::cout << "sh_dF32 = " << sh_dF32 << " ch_dF32 = " << ch_dF32 
+                            << " dF32 = " << dF32 << std::endl;
                 dM32 = -dF32 + S * (ch_dF32 - 1) + C * sh_dF32;
                 dM12 =  dF21 + S * (ch_dF21 - 1) - C * sh_dF21;
             }
@@ -204,17 +209,22 @@ class DoubleRIteration{
                 double sin_dE21 = r1_abs * (sin_dnu21 / sqrt(a * p) + (1 - cos_dnu21) * S / p);
                 double cos_dE21 = 1 - r2_abs * r1_abs * (1 - cos_dnu21) / a / p;
                 double dE21 = atan2(sin_dE21, cos_dE21);
-
+                std::cout << "cos_dE21 = " << cos_dE21 << " sin_dE21 = " << sin_dE21 
+                          << " dE21 = " << dE21 * _RAD2GRAD << std::endl; 
                 this->sin_dE32 = r3_abs * (sin_dnu32 / sqrt(a * p) - (1 - cos_dnu32) * S / p);
                 this->cos_dE32 = 1 - r2_abs * r3_abs * (1 - cos_dnu32) / a / p;
                 double dE32 = atan2(sin_dE32, cos_dE32);
-
+                std::cout << "cos_dE32 = " << cos_dE32 << " sin_dE32 = " << sin_dE32 
+                          << " dE32 = " << dE32 * _RAD2GRAD << std::endl; 
                 dM12 = -dE21 + S * (1 - cos_dE21) + C * sin_dE21;
                 dM32 =  dE32 + S * (1 - this->cos_dE32) - C * this->sin_dE32;
             }
             std::cout << "e = " << e << std::endl;
-            this->F1 = this->tau1 - dM12 / mean_motion;
-            this->F2 = this->tau3 - dM32 / mean_motion;
+            double lambda = (dM12 * dM32 < 0) ? 1.0 : 0.0;
+            this->F1 = this->tau1 - dM12 / mean_motion + lambda * (2 * M_PI / mean_motion);
+            this->F2 = this->tau3 - dM32 / mean_motion - lambda * (2 * M_PI / mean_motion);
+            std::cout << "DM12 = " << dM12 << " dM32 = " << dM32 << " mean = " << mean_motion << std::endl;
+            std::cout << "tau1 = " << this->tau1 << " tau3 = " << this->tau3 << std::endl;
             std::cout << "F1 = " << this->F1 << " F2 = " << this->F2 << std::endl;
             std::cout << "=====================================================" << std::endl;
         }
@@ -247,6 +257,7 @@ class DoubleRIteration{
             double dr1 = 1, dr2 = 1;
             double f,g;
             double F_1, F_2;
+            double rel = 0.1;
 
             while (fabs(dr1) > eps_dr || fabs(dr2) > eps_dr) { 
                 std::cout << "Новая итерация:" << std::endl;
@@ -266,6 +277,8 @@ class DoubleRIteration{
                 dr1 = -d1 / D;
                 dr2 = -d2 / D;
                 std::cout << "d1 = " << d1 << ", " << "D = " << D << std::endl;
+                dr1 *= rel;
+                dr2 *= rel;
                 r1 += dr1;
                 r2 += dr2;
                 std::cout << "dr1 = " << dr1 << ", " << "dr2 = " << dr2 << std::endl;
