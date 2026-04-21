@@ -1,16 +1,16 @@
 TARGET = determ
-SOURCES = main.cpp
+SOURCES = main.cpp init_det.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
-PYTHON = python3.11
-PYTHON_VERSION = 3.11
-MODULE = doubleR_module`python3.11-config --extension-suffix`
+PYTHON = python3.12
+PYTHON_VERSION = 3.12
+MODULE = doubleR_module`python3.12-config --extension-suffix`
 BINDINGS = bindings.cpp
-BINDINGS_OBJECTS = bindings.o
+BINDINGS_OBJECTS = bindings.o init_det.o
 MODULE_OBJECTS = $(BINDINGS_OBJECTS)
 
 CXX = g++
-CXXFLAGS = -Wall -std=c++17 -O3 -fPIC
+CXXFLAGS = -Wall -std=c++17 -O3 -fPIC -I/usr/include/python3.12 $(shell python3 -m pybind11 --includes)
 
 PYTHON_INCLUDES = $(shell $(PYTHON)-config --includes)
 PYBIND11_LDFLAGS = $(shell $(PYTHON)-config --ldflags)
@@ -29,14 +29,17 @@ module: $(MODULE)
 $(MODULE): $(BINDINGS_OBJECTS)
 	$(CXX) -shared bindings.o -o $(MODULE) $(PYTHON_LDFLAGS) 
 
-main.o: main.cpp doubleR.h
+main.o: main.cpp doubleR.h lambert.h
 	$(CXX) $(CXXFLAGS) -c main.cpp -o main.o
 
 bindings.o: bindings.cpp doubleR.h
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c bindings.cpp -o bindings.o
 
+init_det.o: init_det.cpp doubleR.h lambert.h
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c init_det.cpp -o init_det.o
+
 clean:
-	rm -f main.o bindings.o $(TARGET) $(MODULE)
+	rm -f main.o bindings.o init_det.o $(TARGET) $(MODULE)
 
 distclean: clean
 	rm -f *.o *.so *.pyd *.dll
