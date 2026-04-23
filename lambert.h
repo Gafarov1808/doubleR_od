@@ -2,7 +2,7 @@
 
 #include "doubleR.h"
 
-std::pair<double, double> calc_c2c3(double psi, double eps = 1.e-6){
+inline std::pair<double, double> calc_c2c3(double psi, double eps = 1.e-6){
     double c2, c3, psi_sqrt = sqrt(fabs(psi));
 
     if (psi > eps) {
@@ -21,7 +21,7 @@ std::pair<double, double> calc_c2c3(double psi, double eps = 1.e-6){
     return {c2, c3};
 }
 
-std::tuple<double, double, double, double> Lambert ( 
+inline std::tuple<double, double, double, double> Lambert ( 
                 double mu,
                 std::array <double, 3> r1_vec,
                 std::array <double, 3> r2_vec,

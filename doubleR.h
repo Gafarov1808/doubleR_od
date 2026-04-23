@@ -11,11 +11,11 @@ constexpr double _RAD2GRAD = 180. / M_PI;
 constexpr double mu = 398.6004415;
 
 
-double dot_prod(const std::array<double, 3>& x, const std::array<double, 3>& y) {
+inline double dot_prod(const std::array<double, 3>& x, const std::array<double, 3>& y) {
     return x[0]*y[0] + x[1]*y[1] + x[2]*y[2];
 }
 
-double solve_kepler(double M, double e){
+inline double solve_kepler(double M, double e){
     double E = M, dE = 1;
     while (dE > 1e-10){
         dE = (E - e * sin(E) - M) / (1 - e * cos(E));
@@ -24,7 +24,7 @@ double solve_kepler(double M, double e){
     return E;
 }
 
-std::array<double, 3> cross_prod(const std::array<double, 3>& x, const std::array<double, 3>& y){
+inline std::array<double, 3> cross_prod(const std::array<double, 3>& x, const std::array<double, 3>& y){
     std::array<double, 3> cross;
     cross[0] = (x[1] * y[2] - x[2] * y[1]);
     cross[1] = (x[2] * y[0] - x[0] * y[2]);
@@ -33,7 +33,7 @@ std::array<double, 3> cross_prod(const std::array<double, 3>& x, const std::arra
     return cross;
 } 
 
-std::array<double, 6> get_elements(std::array<double, 6> state_v){
+inline std::array<double, 6> get_elements(std::array<double, 6> state_v){
 
     std::array <double, 3> r, v;
     std::copy((state_v).begin(), (state_v).begin() + 3, r.begin());
@@ -72,7 +72,7 @@ std::array<double, 6> get_elements(std::array<double, 6> state_v){
     return elements;
 }
 
-std::array<double, 3> norm(const std::array<double, 3>& x, const std::array<double, 3>& y){
+inline std::array<double, 3> norm(const std::array<double, 3>& x, const std::array<double, 3>& y){
     std::array<double, 3> cross;
     double x_abs = sqrt(dot_prod(x, x)), y_abs = sqrt(dot_prod(y, y));
     cross[0] = (x[1] * y[2] - x[2] * y[1]) / x_abs / y_abs;
@@ -84,11 +84,61 @@ std::array<double, 3> norm(const std::array<double, 3>& x, const std::array<doub
     return cross;
 }
 
-void print_vec(const std::array<double, 3>& x){
+inline void print_vec(const std::array<double, 3>& x){
     std::cout << "[" << x[0] << ", " << x[1] << ", " << x[2] << "]" << std::endl;
 }
 
+
+struct Observation{
+    double t;
+    std::array<double, 3> R;
+    std::array<double, 3> L;
+};
+
+
+struct OrbitSolution{
+    double rho1, rho3;
+    std::array<double, 3> r1, v1;
+};
+
+
 class DoubleRIteration{
+    private:
+
+        std::array<double, 3> L1, L2, L3, r_st1, r_st2, r_st3;
+        double tau1, tau3;
+
+        const double eps_dr = 1e-10;
+        double p, a, e_sq;
+        double cos_dE32, dE32, sin_dE32;
+
+        double c1, c2;
+        double rst1_abs, rst2_abs;
+        double F1, F2;
+        double dF1_dr1, dF2_dr1, dF1_dr2, dF2_dr2;
+
+        std::array<double, 3> r2_vec, r3_vec, v2;
+        std::optional <std::array<double, 6>> state_v;
+
+    public:
+
+        DoubleRIteration(std::array<double, 3> Ra, std::array<double, 3> Dec,
+                         std::array<double, 3> r_st1, std::array<double, 3> r_st2,
+                         std::array<double, 3> r_st3, double tau1, double tau3);
+
+        DoubleRIteration& operator=(std::initializer_list<double> list);
+
+        void calc_func(double r1, double r2);
+        void calc_der(double r1, double r2);
+        void solver(double r1, double r2);
+        std::array<double, 6> get_state();
+        void print_state();
+        void print_elements();
+};
+
+
+class GoodingOD{
+
     private:
 
         std::array<double, 3> L1, L2, L3, r_st1, r_st2, r_st3;
@@ -108,53 +158,17 @@ class DoubleRIteration{
 
     public:
 
-        DoubleRIteration(std::array<double, 3> L1, std::array<double, 3> L2, std::array<double, 3> L3, 
-                         std::array<double, 3> r_st1, std::array<double, 3> r_st2, 
-                         std::array<double, 3> r_st3, double tau1, double tau3);
-
-        DoubleRIteration& operator=(std::initializer_list<double> list);
-
-        void calc_func(double r1, double r2);
-        void calc_der(double r1, double r2);
-        void solver(double r1, double r2);
-        std::array<double, 6> get_state();
-        void print_state();
-        void print_elements();
-};
-
-
-class Gooding{
-
-    private:
-
-    std::array<double, 3> L1, L2, L3, r_st1, r_st2, r_st3;
-    double tau1, tau3;
-
-    const double eps_dr = 1e-12;
-    double p, a, e_sq;
-    double cos_dE32, dE32, sin_dE32;
-
-    double c1, c2;
-    double rst1_abs, rst2_abs;
-    double F1, F2;
-    double dF1_dr1, dF2_dr1, dF1_dr2, dF2_dr2;
-
-    std::array<double, 3> r2_vec, r3_vec, v2;
-    std::optional <std::array<double, 6>> state_v;
-
-    public:
-
-        Gooding(std::array<double, 3> L1, std::array<double, 3> L2, std::array<double, 3> L3, 
+        GoodingOD(std::array<double, 3> Ra, std::array<double, 3> Dec, 
                             std::array<double, 3> r_st1, std::array<double, 3> r_st2, 
-                            std::array<double, 3> r_st3, double tau1, double tau3 
-            );
+                            std::array<double, 3> r_st3, double tau1, double tau3);
 
-        Gooding& operator=(std::initializer_list<double> list);
+        GoodingOD& operator=(std::initializer_list<double> list);
 
         void calc_func(double r1, double r2);
         void calc_der(double r1, double r2);
         void solver(double r1, double r2);
-        std::array<double, 3> CALCPS(int NHREV, double rho1, double rho3, int NUM);
+        std::array<double, 3> CALCPS(int nhrev, double rho1, double rho3);
+        std::pair<double, double> OBS3LS(int nhrev, double rho1, double rho3);
         std::array<double, 6> get_state();
         void print_state();
         void print_elements();
