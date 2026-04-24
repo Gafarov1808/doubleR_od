@@ -24,6 +24,8 @@ DoubleRIteration::DoubleRIteration(std::array<double, 3> Ra, std::array<double, 
             this->r2_vec[i] = 0;
             this->r3_vec[i] = 0;
             this->v2[i] = 0;
+            this->state_v[i] = 0;
+            this->state_v[i+3] = 0;
         }
 
         this->tau1 = tau1;
@@ -89,8 +91,10 @@ void DoubleRIteration::calc_func(double r1, double r2){
     rho3 = -dot_prod(r_st3, W) / dot_prod(L3, W);
 
     if (rho1 < 0 || rho2 < 0 || rho3 < 0){
-        std::cout << "Дальность отрицательная!" << std::endl;
-        return;
+        std::cout << "rho1 = " << rho1
+                  << " rho2 = " << rho2
+                  << " rho3 = " << rho3 << std::endl;
+        throw std::domain_error("Дальность отрицательная");
     }
 
     for(size_t i = 0; i < 3; ++i) r3_vec[i] = rho3 * L3[i] + r_st3[i];
@@ -199,7 +203,11 @@ void DoubleRIteration::solver(double r1, double r2) {
 
     while (fabs(dr1) > eps_dr || fabs(dr2) > eps_dr) { 
         double c1_cur = c1;
-        calc_func(r1, r2);
+        try{calc_func(r1, r2);}
+        catch(const std::exception& e){
+            std::cout << e.what() << std::endl; 
+            return;
+        }
         F_1 = F1;
         F_2 = F2;
         
@@ -226,12 +234,12 @@ void DoubleRIteration::solver(double r1, double r2) {
     //          << " dE32 = " << dE32 << " sin_dE32 = " << sin_dE32 << std::endl;
     for(size_t i = 0; i < 3; ++i) v2[i] = (r3_vec[i] - f * r2_vec[i]) / g;
     for(size_t i = 0; i < 3; i++){
-        (*state_v)[i] = r2_vec[i];
-        (*state_v)[i+3] = v2[i];
+        state_v[i] = r2_vec[i];
+        state_v[i+3] = v2[i];
     }
 }
 
-std::array<double, 6> DoubleRIteration::get_state(){return *state_v;}
+std::array<double, 6> DoubleRIteration::get_state(){return state_v;}
 
 void DoubleRIteration::print_state() {
     const auto& state = get_state();
@@ -243,7 +251,7 @@ void DoubleRIteration::print_state() {
 }
 
 void DoubleRIteration::print_elements(){
-    const auto& elements = get_elements(*state_v);
+    const auto& elements = get_elements(state_v);
     std::cout << "[";
     for(size_t i = 0; i < elements.size(); ++i){
         std::cout << std::fixed << std::setprecision(14) << elements[i] << (i < elements.size()-1 ? ", " : "");

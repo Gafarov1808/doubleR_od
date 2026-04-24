@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <optional>
 #include <iomanip>
+#include <stdexcept>
 
 constexpr double _RAD2GRAD = 180. / M_PI;
 constexpr double mu = 398.6004415;
@@ -118,7 +119,7 @@ class DoubleRIteration{
         double dF1_dr1, dF2_dr1, dF1_dr2, dF2_dr2;
 
         std::array<double, 3> r2_vec, r3_vec, v2;
-        std::optional <std::array<double, 6>> state_v;
+        std::array<double, 6> state_v;
 
     public:
 
