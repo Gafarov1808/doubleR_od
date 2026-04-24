@@ -18,7 +18,7 @@ def get_data(n):
     sq1 = select(TrackletMeta.unit_id, TrackletMeta.ip_id, TrackletMeta.obj_id,
                  TrackletMeta.t_start, TrackletMeta.t_end).where(
                     TrackletMeta.t_start > datetime(2026, 2, 28), 
-                    TrackletMeta.t_end < datetime(2026, 3, 12)).order_by(
+                    TrackletMeta.t_end < datetime(2026, 4, 24)).order_by(
                     desc(TrackletMeta.t_end - TrackletMeta.t_start)).limit(n)
     with SessionMeas() as session:
         res1 = session.execute(sq1).all() 
@@ -58,14 +58,15 @@ def get_data(n):
     return t_list[0], ra_list[0], de_list[0], r_xyz, state, epoch
 
 def main():
-
-    for count in range(1, 200):
+    amount = 100
+    k = 0
+    for count in range(1, amount):
         try:
             times, ra, dec, xyz, v, t = get_data(count)
         except ValueError as e:
             print(f"{count}) {e}")
             continue
-        central = len(times) - 20
+        central = len(times) - 5
 
         t1, t2, t3 = times[0], times[central], times[-1]
         Ra, Dec = [ra[0], ra[central], ra[-1]], [dec[0], dec[central], dec[-1]]
@@ -84,8 +85,10 @@ def main():
         except pyorbs.exceptions.ReentryException as e:
             print(f'{count}) {e}')
             continue
-        dv = state - orb.state_v
-        print(f'{count}) dv = {dv}')
+
+        if np.linalg.norm(state) < 1.1 * np.linalg.norm(orb.state_v):
+            k += 1
+    print(k/(amount-1))
 
 if __name__ == "__main__":
     main()

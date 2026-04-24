@@ -21,10 +21,9 @@ inline std::pair<double, double> calc_c2c3(double psi, double eps = 1.e-6){
     return {c2, c3};
 }
 
-inline std::tuple<double, double, double, double> Lambert ( 
-                double mu,
-                std::array <double, 3> r1_vec,
-                std::array <double, 3> r2_vec,
+inline std::tuple<std::array<double, 3>, std::array<double, 3>> Lambert ( 
+                std::array<double, 3>& r1_vec,
+                std::array<double, 3>& r2_vec,
                 double dt,
                 bool short_flag,
                 double psi_min = -4. * M_PI,
@@ -69,18 +68,19 @@ inline std::tuple<double, double, double, double> Lambert (
                     }
                     double f = 1. - y / r1, g = A * sqrt(y / mu), g_dot = 1. - y / r2;
                     std::array<double, 3> v1, v2;
-                    for(size_t i = 0; i < 3; ++i){
+                    for(size_t i; i < 3; ++i){
                         v1[i] = (r2_vec[i] - f * r1_vec[i]) / g;
                         v2[i] = (g_dot * r2_vec[i] - r1_vec[i]) / g;
                     }
 
-                    std::array<double, 6> state_v1, state_v2, elems1, elems2;
-                    for (int i = 0; i < 3; ++i){
+                    /*std::array<double, 6> state_v1, state_v2, elems1, elems2;
+                    for(size_t i; i < 3; ++i){
                         state_v1[i] = r1_vec[i];
                         state_v1[i+3] = v1[i];
                         state_v2[i] = r2_vec[i];
                         state_v2[i+3] = v2[i];
                     }
+
                     elems1 = get_elements(state_v1);
                     elems2 = get_elements(state_v2);
 
@@ -91,7 +91,7 @@ inline std::tuple<double, double, double, double> Lambert (
                     E1 = solve_kepler(elems1[5], elems1[1]),
                     E2 = solve_kepler(elems2[5], elems2[1]),
                     v_r1 = sqrt(mu / p1) * elems1[1] * sqrt(1 - elems1[1] * elems1[1]) * sin(E1) / (1 - E1 * cos(E1)),
-                    v_r2 = sqrt(mu / p2) * elems2[1] * sqrt(1 - elems2[1] * elems2[1]) * sin(E2) / (1 - E2 * cos(E2));
+                    v_r2 = sqrt(mu / p2) * elems2[1] * sqrt(1 - elems2[1] * elems2[1]) * sin(E2) / (1 - E2 * cos(E2));*/
 
-                    return {v_t1, v_r1, v_t2, v_r2};
+                    return {r1_vec, v1};
 }

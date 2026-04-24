@@ -90,6 +90,37 @@ inline void print_vec(const std::array<double, 3>& x){
 }
 
 
+struct Vector{
+    double x, y, z;
+    
+    Vector(double x_ = 0, double y_ = 0, double z_ = 0): x(x_), y(y_), z(z_){}
+
+    Vector operator+(const Vector& b) const {return{x+b.x, y+b.y, z+b.z};}
+    Vector operator-(const Vector& b) const {return{x-b.x, y-b.y, z-b.z};}
+    Vector operator*(double s) const {return{x*s, y*s, z*s};}
+    friend Vector operator*(double s, const Vector& v) {return v*s;}
+    Vector operator/(double s) const {return *this * (1.0 / s);}
+
+    double dot(const Vector& b) const {return x * b.x + y * b.y + z * b.z;}
+    Vector cross(const Vector& b) const {return {y * b.z - z * b.y, z * b.x - x * b.z, x * b.y - y * b.x};}
+    double norm() const {return sqrt(dot(*this));}
+    Vector normalized() const {
+        double n = this->norm();
+        if (n < 1e-30){throw std::runtime_error("Норма вектора равна 0");}
+        return *this / n;
+    }
+};
+
+struct Vector6{
+    double x, y, z, vx, vy, vz;
+    
+    Vector6(double x_ = 0, double y_ = 0, double z_ = 0, 
+            double vx_ = 0, double vy_ = 0, double vz_ = 0): x(x_), y(y_), z(z_), vx(vx_), vy(vy_), vz(vz_){}
+
+    std::array<double, 6> concatenate(const Vector& a, const Vector& b) const {return{a.x, a.y, a.z, b.x, b.y, b.z};}
+    
+};
+
 struct Observation{
     double t;
     std::array<double, 3> R;
