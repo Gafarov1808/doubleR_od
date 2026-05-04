@@ -111,6 +111,7 @@ struct Vector{
     }
 };
 
+
 struct Vector6{
     double x, y, z, vx, vy, vz;
     
@@ -120,6 +121,7 @@ struct Vector6{
     std::array<double, 6> concatenate(const Vector& a, const Vector& b) const {return{a.x, a.y, a.z, b.x, b.y, b.z};}
     
 };
+
 
 struct Observation{
     double t;

@@ -9,6 +9,7 @@ PYBIND11_MODULE(ODdoubleR, m){
     m.doc() = "Orbit Determination Module";
 
     m.def("get_elements", &get_elements, py::arg("state_v"));
+    m.def("kepler", &kepler, py::arg("r0"), py::arg("v0"), py::arg("dt"));
 
     py::class_<DoubleRIteration>(m, "DoubleRIteration")
         .def(py::init<

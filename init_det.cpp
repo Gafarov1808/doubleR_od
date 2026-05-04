@@ -1,5 +1,5 @@
 #include "doubleR.h"
-#include "lambert.h"
+#include "propagate.h"
 
 DoubleRIteration::DoubleRIteration(std::array<double, 3> Ra, std::array<double, 3> Dec, 
                     std::array<double, 3> r_st1, std::array<double, 3> r_st2, 
@@ -318,27 +318,50 @@ GoodingOD& GoodingOD::operator=(std::initializer_list<double> list){
 }
 
 
-void GoodingOD::solver(const Observation& obs1, const Observation& obs2, const Observation& obs3,
-                        double rho1_init, double rho3_init, Vector& r1_out, Vector& v1_out){
-    double rho1 = rho1_init, rho3 = rho3_init;
-    
-    for(int k = 0; k < 50; k++){
-        Vector F;
-        double conv = sqrt(F.x * F.x + F.y * F.y);
+void GoodingOD::calc_res(double rho1, double rho3, const Observation& obs1, 
+                        const Observation& obs2, const Observation& obs3, Vector F){
+    std::array<double, 3> r1, r3;
 
-        if (conv < 1e-10){
-            
-            std::array<double, 3> r1, r3;
-
-            for(size_t i; i < 3; ++i){
-                r1[i] = obs1.R[i] + obs1.L[i] * rho1;
-                r3[i] = obs3.R[i] + obs3.L[i] * rho3;
-            }
-            Vector v1, v3;
-
-            double tau3 = obs3.t - obs1.t;
-            auto [r1_out, v1_out] = Lambert(r1, r3, tau3, true);
-        }
+    for(size_t i; i < 3; ++i){
+        r1[i] = obs1.R[i] + obs1.L[i] * rho1;
+        r3[i] = obs3.R[i] + obs3.L[i] * rho3;
     }
-    
+
+    double tau3 = obs3.t - obs1.t;
+    auto [r1_out, v1_out] = Lambert(r1, r3, tau3, true);
+
+    Vector r2_pred, v2_unused;
+    double dt12 = obs2.t - obs1.t;
+}
+
+void GoodingOD::calc_ps(Observation& obs1, 
+                        Observation& obs2, 
+                        Observation& obs3, 
+                        double rho1, double rho3, 
+                        int nrev){
+    std::vector<double, 3> r1_vec, r3_vec;
+    bool short_flag = true;
+
+    for(size_t i = 0; i < 3; ++i){
+        r1_vec[i] = obs1.R[i] + rho1 * obs1.L[i];
+        r3_vec[i] = obs3.R[i] + rho3 * obs3.L[i];
+    }
+
+    r1_abs = sqrt(dot_prod(r1_vec, r1_vec));
+    r3_abs = sqrt(dot_prod(r3_vec, r3_vec));
+
+    std::vector<double, 3> n = norm(r1_vec, r3_vec);
+    double ang = atan(n, dot_prod(r1_vec, r3_vec));
+
+    if (nrev % 2 == 1) {short_flag = false;}
+    theta += nrev * M_PI;
+    auto [v1_vec, v3_vec] = Lambert(r1_vec, r3_vec, obs3.t - obs1.t, short_flag);
+
+    std::vector<double, 6> state;
+    for(size_t i = 0; i < 3; ++i){
+        state[i] = r1_vec[i];
+        state[i+3] = v1_vec[i];
+    }
+
+    auto elems = get_elements(state);
 }
